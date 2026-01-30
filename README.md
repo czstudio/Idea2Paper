@@ -1,154 +1,152 @@
 # Idea2Paper
 
-把你的研究想法（Idea）自动变成“可投稿论文的 Story（论文叙事骨架）”的端到端流水线：**知识图谱召回 → Pattern 选择 → Story 生成 → 可标定 Multi-Agent Review（基于真实 review_stats）→ 迭代修正 → 查重验证 → 输出最终 Story**。
+[![PyPI - Python Version](https://img.shields.io/badge/python-3.10%2B-blue)]()
+[![License](https://img.shields.io/badge/license-MIT-green)]()
+[![Stars](https://img.shields.io/github/stars/AgentAlphaAGI/Idea2Paper?style=social)](https://github.com/AgentAlphaAGI/Idea2Paper/stargazers)
 
-本仓库的核心实现位于 `Paper-KG-Pipeline/`，入口命令保持不变：
-`python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"`
+中文 / English — 在下方选择你的语言（或使用展开控件切换）
 
-## 核心特性（浓缩版）
+<details>
+<summary><strong>切换语言 / Switch language</strong></summary>
 
-- **知识图谱**：从 ICLR 2025 数据构建 `Idea/Pattern/Domain/Paper` 节点（当前导出：Idea 8,284 / Pattern 124 / Domain 98 / Paper 8,285）。
-- **三路召回 + 两阶段加速**：Idea 相似 / Domain 泛化 / Paper 相似；粗排 Jaccard + 精排 Embedding。
-- **Idea2Story 生成链路**：Pattern 选择 → Story 生成 → 评审 → 智能修正（含 Novelty 模式）→ RAG 查重与 Pivot。
-- **Anchored Multi-Agent Review（可标定）**：用图谱真实 `review_stats` 作为标尺，LLM 只输出相对判断，分数由确定性算法拟合。
-- **运行日志系统**：每次 run 独立目录，记录 events + LLM/embedding 调用输入输出，便于审计与回放。
+- 点击 “中文” / “English” 快速跳转：
+  - 中文部分：<a href="#中文介绍">中文介绍</a>
+  - English section：<a href="#english-overview">English overview</a>
+
+</details>
+
+---
+
+<!-- Star history (auto-generated SVG will be displayed here if present) -->
+<p align="center">
+  <img alt="Star history" src="assets/star_history.svg" style="max-width:100%;height:auto;">
+</p>
 
 ---
 
-## 你能得到什么（输出）
+# 中文介绍
 
-运行一次 pipeline 会生成：
-- `Paper-KG-Pipeline/output/final_story.json`：最终 Story（标题/摘要/问题/方法/贡献/实验等结构化字段）
-- `Paper-KG-Pipeline/output/pipeline_result.json`：完整链路结果（包含每轮评审、修正、查重、审计信息等）
-- 仓库根 `log/run_.../`：每次运行的结构化日志（LLM/embedding 输入输出 + 关键事件）
+## 项目概述
+把你的研究想法（Idea）自动变成“可投稿论文的 Story（论文叙事骨架）”的端到端流水线：知识图谱召回 → Pattern 选择 → Story 生成 → 可标定 Multi-Agent Review → RAG 查重与智能修正。
 
----
+仓库核心路径：`Paper-KG-Pipeline/`  
+运行入口（不变）：
+```bash
+python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"
+```
+
+## 核心特性（浓缩）
+- 知识图谱：从 ICLR 数据构建 Idea/Pattern/Domain/Paper 节点（当前导出规模示例：Idea 8,284 / Pattern 124 / Domain 98 / Paper 8,285）。
+- 三路召回 + 两阶段加速：Idea 相似 / Domain 泛化 / Paper 相似；粗排（Jaccard）+ 精排（Embedding）。
+- Idea2Story 生成链路：Pattern 选择 → Story 生成 → 评审（Anchored Multi‑Agent）→ 智能修正（含 Novelty 模式）。
+- 可标定多智能体评审：使用论文图谱中的真实 review_stats 作为锚点（anchors），LLM 输出相对比较结果，由确定性算法拟合最终 1~10 分，过程可审计。
+- 完整运行日志与审计：每次 run 建立独立日志目录，记录 events、LLM/embedding 调用输入输出，便于回放与审计。
+
+## 你将得到（输出）
+- `Paper-KG-Pipeline/output/final_story.json`：最终 Story（结构化字段：标题/摘要/问题/方法/贡献/实验等）
+- `Paper-KG-Pipeline/output/pipeline_result.json`：完整链路结果（包含评审、修正、查重、审计信息）
+- 仓库根 `log/run_.../`：每次运行的结构化运行日志
 
 ## 快速开始（端到端）
+1. Python 3.10+
+2. 安装依赖：
+   ```bash
+   pip install -r Paper-KG-Pipeline/requirements.txt
+   ```
+3. 配置：
+   - 复制 `.env.example` -> `.env`，填写 `SILICONFLOW_API_KEY` 等敏感键（不要提交）
+   - 可选：复制 `i2p_config.example.json` -> `i2p_config.json` 调整阈值/anchors 等
+4. 运行：
+   ```bash
+   python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "你的研究Idea描述"
+   ```
 
-### 0) 环境要求
-- Python 3.10+（推荐）
-- 安装依赖：`pip install -r Paper-KG-Pipeline/requirements.txt`
+## Multi‑Agent Review（可标定、可追溯）
+核心思想：用真实论文评分分布作为锚点，LLM 做相对比较（better/tie/worse + confidence + rationale），最终分数由确定性算法拟合，使评审结果可复现、可审计。详见仓库 `MULTIAGENT_REVIEW.md`（或 `Paper-KG-Pipeline/docs` 中相应文档）。
 
-### 1) 准备数据（两种方式）
+## star 历史曲线图（说明）
+README 顶部会显示 `assets/star_history.svg`。该文件可通过提供的脚本自动生成/更新（使用 GitHub API 获取 stargazers 的时间戳并绘制每日累计星数曲线）。示例脚本：`scripts/generate_star_history.py`（见仓库）。在 CI 中运行此脚本并将生成的 `assets/star_history.svg` 提交到仓库即可在 README 中展示最新曲线。
 
-**方式 A（推荐，若仓库已带好 output 数据）**  
-如果 `Paper-KG-Pipeline/output/` 下已存在以下文件，你可以直接跑生成链路：
-- `nodes_idea.json / nodes_pattern.json / nodes_domain.json / nodes_paper.json`
-- `edges.json`
-- `knowledge_graph_v2.gpickle`
+---
 
-**方式 B（从原始数据重建知识图谱，只需一次）**  
-确保 `Paper-KG-Pipeline/data/` 下有 ICLR 数据集（见 `Paper-KG-Pipeline/docs/01_KG_CONSTRUCTION.md` 的输入说明），然后执行：
+# English overview
+
+## Project summary
+Idea2Paper is an end-to-end pipeline that turns a research idea into a submission-ready "story" (paper narrative skeleton): Knowledge-graph retrieval → Pattern selection → Story generation → Anchored Multi‑Agent review → RAG dedup & intelligent revision.
+
+Core code lives in `Paper-KG-Pipeline/`. Entrypoint (unchanged):
 ```bash
-python Paper-KG-Pipeline/scripts/build_entity_v3.py
-python Paper-KG-Pipeline/scripts/build_edges.py
+python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your idea"
 ```
 
-### 2) 配置（只改文件，不改代码）
+## Key features (short)
+- Knowledge graph built from ICLR data with Idea/Pattern/Domain/Paper nodes.
+- Three-path retrieval + two-stage ranking: idea-similarity / domain-generalization / paper-similarity; coarse Jaccard → fine embedding ranking.
+- Idea2Story: pattern selection → story generation → critic review (anchored multi-agent) → smart correction (novelty mode).
+- Anchored Multi-Agent Review: uses real review_stats from the paper graph as anchors. LLMs produce relative comparisons; final 1–10 scores are fitted by a deterministic algorithm, fully auditable.
+- Per-run structured logging with LLM and embedding call traces for reproducibility and audits.
 
-本项目支持 **`.env` + `i2p_config.json`**，优先级固定为：
-**shell export > 仓库根 `.env` > 仓库根 `i2p_config.json` > 代码默认值**
+## Outputs you get from a run
+- `Paper-KG-Pipeline/output/final_story.json` — final structured Story (title/abstract/problem/method/contribs/experiments).
+- `Paper-KG-Pipeline/output/pipeline_result.json` — full pipeline trace (round-by-round reviews, corrections, dedup audits).
+- `log/run_.../` — per-run structured logs (events, llm_calls, embedding_calls).
 
-1) 复制 `.env`（放敏感 key + 常用开关）
+## Quick start (end-to-end)
+1. Python 3.10+
+2. Install dependencies:
+   ```bash
+   pip install -r Paper-KG-Pipeline/requirements.txt
+   ```
+3. Configuration:
+   - Copy `.env.example` → `.env`, fill `SILICONFLOW_API_KEY` (do not commit).
+   - Optionally copy `i2p_config.example.json` → `i2p_config.json` to tweak anchors/thresholds.
+4. Run:
+   ```bash
+   python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "your research idea"
+   ```
+
+## Anchored Multi‑Agent Review (explain)
+Instead of non-auditable 1–10 scores, this project uses anchored comparisons: select anchor papers (with real score10), ask LLM to compare target vs anchors (better/tie/worse + confidence + rationale referencing anchor score), then deterministically fit a final numeric score. The chain of evidence is stored in audit logs.
+
+## Star history chart (how to update)
+The README displays `assets/star_history.svg`. Use the script `scripts/generate_star_history.py` to fetch stargazer timestamps via GitHub API and render a cumulative-star SVG. Run it locally or in CI, commit the resulting `assets/star_history.svg` to update the chart in README.
+
+---
+
+# Files & Docs (important paths)
+- Core code: `Paper-KG-Pipeline/src/idea2paper/`
+- Entry scripts:
+  - `Paper-KG-Pipeline/scripts/idea2story_pipeline.py`
+  - `Paper-KG-Pipeline/scripts/simple_recall_demo.py`
+- Docs:
+  - `Paper-KG-Pipeline/docs/00_PROJECT_OVERVIEW.md`
+  - `Paper-KG-Pipeline/docs/01_KG_CONSTRUCTION.md`
+  - `Paper-KG-Pipeline/docs/02_RECALL_SYSTEM.md`
+  - `Paper-KG-Pipeline/docs/03_IDEA2STORY_PIPELINE.md`
+- Multi-Agent details: `MULTIAGENT_REVIEW.md`
+
+---
+
+# How to generate/update the star history SVG (example)
+Prerequisites:
+- A GitHub token with repo/public_repo access (to avoid rate limits)
+- Python 3.10+, pip packages: PyGithub, pandas, matplotlib
+
+Example:
 ```bash
-cp .env.example .env
-```
-编辑 `.env`，填入你的 `SILICONFLOW_API_KEY`（不要提交到 git）。
-
-2) （可选）复制用户配置文件（放非敏感参数）
-```bash
-cp i2p_config.example.json i2p_config.json
+pip install PyGithub pandas matplotlib
+python scripts/generate_star_history.py --repo AgentAlphaAGI/Idea2Paper --token $GITHUB_TOKEN --out assets/star_history.svg
 ```
 
-### 3) 运行
-```bash
-python Paper-KG-Pipeline/scripts/idea2story_pipeline.py "你的研究Idea描述"
-```
-
-常用模式：
-- 本地无 key 冒烟（允许非严格兜底，更容易跑通）：在 `.env` 里设 `I2P_CRITIC_STRICT_JSON=0`
-- 质量模式（推荐）：`SILICONFLOW_API_KEY` 有效 + `I2P_CRITIC_STRICT_JSON=1`
+Add the generated `assets/star_history.svg` to the repo and push; the README will show the updated chart.
 
 ---
 
-## Multi-Agent Review（可标定、可追溯）是什么？
-
-传统“LLM 直接给 1~10 分”不可审计。本项目采用 **Anchored MultiAgentCritic**：
-
-1) **真实标尺来自图谱数据**  
-只使用 `Paper-KG-Pipeline/output/nodes_paper.json` 的 `review_stats`（真实均分/评审数/分歧）构造 `score10` 标尺。
-
-2) **LLM 只做相对判断，不直接给分**  
-给 LLM 一组“锚点论文”（anchors，含真实 `score10`），LLM 只输出：
-`better|tie|worse + confidence + rationale(必须引用该 anchor 的 score10)`
-
-3) **最终 1~10 分由确定性算法拟合得到**  
-同一批 anchors + 同一份 comparisons JSON → 分数必定一致；并在 `audit` 中保留证据链：
-`pattern_id + anchors(paper_id/title/score10/review_count/weight) + comparisons + loss -> score`
-
-4) **通过标准（更客观）基于 pattern 全量真实分布**  
-默认采用“方案B”：对当前 `pattern_id` 的全量论文 `score10` 分布计算 `q50/q75`：
-- 三个维度至少 **2 个 ≥ q75**
-- 且 **avg ≥ q50**
-并把阈值与判定细节写入 `audit.pass` 和运行事件日志。
-
-更详细解释见：`MULTIAGENT_REVIEW.md`
+# Contributing / License
+欢迎 PR / Issue。遵循 repo 中的贡献指南与 Code of Conduct。默认 MIT 许可（见 LICENSE）。
 
 ---
 
-## 日志与调试（强烈建议看）
-
-每次运行会创建目录：`log/run_YYYYMMDD_HHMMSS_<pid>_<rand>/`
-- `meta.json`：运行元信息（idea/argv/入口等）
-- `events.jsonl`：关键流程事件（召回、pattern 选择、每轮 critic、回滚/pivot、通过阈值等）
-- `llm_calls.jsonl`：每次 LLM chat 的输入/输出/耗时/是否成功（不会记录 key 明文）
-- `embedding_calls.jsonl`：每次 embedding 调用信息
-
-常见排查：
-- 分数总在 6.x：先看 `events.jsonl` 的 `pass_threshold_computed`（很多 pattern 的 q75 本来就在 6.x）
-- 严格模式失败：看 `events.jsonl` 是否有 `critic_invalid_output_*`（JSON 校验失败会重试，仍失败直接终止）
-
----
-
-## 配置说明（.env / i2p_config.json）
-
-### `.env`（敏感信息 + 常用开关）
-- `.env` 会在入口脚本启动时自动加载（不需要手动 export）
-- **布尔值只认 `1/0`（只有 `1` 为 true）**
-- 参考并复制：`.env.example`
-
-最关键：
-- `SILICONFLOW_API_KEY`：SiliconFlow API Key（LLM + embeddings）
-- `I2P_CRITIC_STRICT_JSON`：评审 JSON 严格模式（1=质量优先；0=无 key 冒烟）
-
-### `i2p_config.json`（非敏感集中配置）
-- 参考并复制：`i2p_config.example.json`
-- 适合放：pass 规则、日志目录、anchors 参数、LLM url/model 等
-- 配置文件路径可用 env 指定：`I2P_CONFIG_PATH=/abs/path/to/i2p_config.json`
-
----
-
-## 项目结构（工程化分层）
-
-核心实现：
-- `Paper-KG-Pipeline/src/idea2paper/`：库代码（infra/review/pipeline/recall）
-入口脚本（命令不变）：
-- `Paper-KG-Pipeline/scripts/idea2story_pipeline.py`：端到端 pipeline 入口
-- `Paper-KG-Pipeline/scripts/simple_recall_demo.py`：仅召回 demo
-数据/产物：
-- `Paper-KG-Pipeline/output/`：图谱与运行产物（nodes/edges/graph/story/result）
-- 仓库根 `log/`：每次 run 的审计日志
-
-兼容层：
-- `Paper-KG-Pipeline/scripts/pipeline/`：兼容 shim（旧 import 不断，新代码建议走 `src/idea2paper`）
-
----
-
-## 更多文档（可选）
-
-如果你需要更深的实现细节：
-- `Paper-KG-Pipeline/docs/00_PROJECT_OVERVIEW.md`：整体架构与流程
-- `Paper-KG-Pipeline/docs/01_KG_CONSTRUCTION.md`：知识图谱构建
-- `Paper-KG-Pipeline/docs/02_RECALL_SYSTEM.md`：三路召回与两阶段优化
-- `Paper-KG-Pipeline/docs/03_IDEA2STORY_PIPELINE.md`：生成/评审/修正/查重完整机制
+# 致谢 / Credits
+- 数据来源：ICLR（见 docs 中 KG 构建说明）
+- 设计灵感：以可审计的真实锚点为中心的评审流程
